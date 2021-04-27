@@ -17,7 +17,7 @@ Currently, only RealSpeedup feature is documented here.
 
 - Set up the Python3 environment
 - Install requirements by `pip3 install -r requirements.txt`
-- Set up results directory [[#Set-Up-Results-Directory]]
+- [Set up results directory](#set-up-results-directory)
 - Run the visualizer by `python3 ResultPresenter.py -r PATH/TO/RESULTS -p PORT_NUM`
 - View the results at `http://localhost:PORT_NUM`
 
@@ -30,7 +30,7 @@ results.  It also uses another optional json file
 As shown below, Each directory under results represents a run (the directory
 name can be the date or other more representatitve names), inside the
 directory, the visualize tries to find a status.json file, the structure of
-which is described in [[#Status-Json-File-Structure]].
+which is described [next](#status-json-file-structure).
 
 ```
 results
