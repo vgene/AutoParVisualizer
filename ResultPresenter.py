@@ -133,7 +133,7 @@ class ResultProvider:
                         text_list.append("No Seq time available")
 
             bar_list.append({'x': have_results_bmark_list, 'y': real_speedup_list,
-                             'text': text_list, 'type': 'bar', 'name': "Results from" + date})
+                             'text': text_list, 'type': 'bar', 'name': "Results from " + date})
         return bar_list
 
 
@@ -338,7 +338,7 @@ def parseArgs():
                         help="Path to the results directory")
     args = parser.parse_args()
 
-    return args.root_path, args.port
+    return args.results_path, args.port
 
 
 # some setting for plot
@@ -355,7 +355,7 @@ def getRealSpeedupLayout(resultProvider):
     #data_real_speedup = resultProvder.getRealSpeedup(bmark_list, date_list)
 
     # Get benchmark list and data list from the results directory
-    data_real_speedup = resultProvder.getRealSpeedupAuto()
+    data_real_speedup = resultProvider.getRealSpeedupAuto()
     layout = [html.Div(children='''
             Real Speedup Comparison
         '''),
@@ -733,13 +733,13 @@ if __name__ == '__main__':
 
     app.layout = html.Div([
         dcc.Location(id='url', refresh=False),
-        dcc.Link('Different Cores', href='/multiCore'),
-        html.Br(),
+        # dcc.Link('Different Cores', href='/multiCore'),
+        # html.Br(),
         # dcc.Link('Real Speedup', href='/realSpeedup'),
         # html.Br(),
-        dcc.Link('Compare with Privateer', href='/comparePrivateer'),
-        html.Br(),
-        dcc.Link('Estimated Speedup', href='/estimatedSpeedup'),
+        # dcc.Link('Compare with Privateer', href='/comparePrivateer'),
+        # html.Br(),
+        # dcc.Link('Estimated Speedup', href='/estimatedSpeedup'),
         html.Div(id='page-content')
     ])
 
