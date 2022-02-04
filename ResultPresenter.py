@@ -11,10 +11,9 @@ import os
 import json
 import numpy as np
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
 import plotly.graph_objects as go
-
+from VisualizeCoverage import getCdfFig
 
 # Geometric mean helper
 def geo_mean_overflow(iterable):
@@ -26,27 +25,6 @@ class ResultProvider:
 
     def __init__(self, path):
         self._path = path
-
-    def getPriorResultsAuto(self):
-        prior_file = "prior_results.json"
-        with open(prior_file, 'r') as fd:
-            prior_results = json.load(fd)
-
-        have_results_bmark_list = []
-        speedup_list = []
-        text_list = []
-        for bmark in prior_results:
-            if len(prior_results[bmark]) > 0:
-                have_results_bmark_list.append(bmark)
-                result = prior_results[bmark][0]
-                speedup = result['speedup']
-                text = "on %d cores from %s " % (
-                    result['cores'], result['paper'])
-                speedup_list.append(speedup)
-                text_list.append(text)
-
-        return have_results_bmark_list, speedup_list, text_list
-
 
     def getPriorResults(self, bmark_list):
         prior_file = "prior_results.json"
@@ -104,38 +82,6 @@ class ResultProvider:
                     para_time_dict[bmark] = real_speedup['para_time']
 
         return para_time_dict
-
-    def getRealSpeedupAuto(self):
-        bmark_list, prior_speedup_list, prior_text_list = self.getPriorResultsAuto()
-
-        bar_list = [{'x': bmark_list, 'y': prior_speedup_list,
-                     'text': prior_text_list, 'type': 'bar', 'name': "Best Prior Result"}]
-
-        for date in os.listdir(self._path):
-            status_path = os.path.join(self._path, date, "status.json")
-            with open(status_path, "r") as fd:
-                status = json.load(fd)
-
-            have_results_bmark_list = []
-            real_speedup_list = []
-            text_list = []
-            for bmark in status:
-                if "RealSpeedup" in status[bmark]:
-                    real_speedup = status[bmark]["RealSpeedup"]
-                    if not real_speedup:
-                        continue
-                    have_results_bmark_list.append(bmark)
-                    real_speedup_list.append(real_speedup['speedup'])
-                    if 'seq_time' in real_speedup:
-                        text_list.append("Seq time: %s, para time: %s" % (
-                            round(real_speedup['seq_time'], 2), round(real_speedup['para_time'], 2)))
-                    else:
-                        text_list.append("No Seq time available")
-
-            bar_list.append({'x': have_results_bmark_list, 'y': real_speedup_list,
-                             'text': text_list, 'type': 'bar', 'name': "Results from " + date})
-        return bar_list
-
 
     def getRealSpeedup(self, bmark_list, date_list):
         prior_speedup_list, prior_text_list = self.getPriorResults(bmark_list)
@@ -263,6 +209,50 @@ class ResultProvider:
         ))
 
         return data
+ 
+    def getSpeedupExp3(self, date_list, speedup_threshold=2.0):
+        self.updateResult(date_list)
+        speedup_bar_list = []
+
+        def getMemo(date):
+            with open(self._path + date + '.log') as fd:
+                obj = json.load(fd)
+                if 'memo' in obj:
+                    return obj['memo']
+                else:
+                    return "No Memo"
+
+        def update_list(x_list, y_list, date, exp_key):
+            # sort two list together
+            y_list, x_list = (list(t)
+                              for t in zip(*sorted(zip(y_list, x_list))))
+
+            geomean = geo_mean_overflow(y_list)
+            x_list.append("geomean")
+            y_list.append(geomean)
+            # y_list = list(map(lambda x: x - 1, y_list))
+            return {'x': x_list, 'y': y_list, 'type': 'bar',
+                    'name': date[5:] + " " + exp_key[11:] + " " + getMemo(date)}
+
+        for date in date_list:
+            reg_results = self._all_reg_results[date]
+            #exps = [ "Experiment-no-spec", "Experiment-cheap-spec", "Experiment-all-spec", "Experiment-no-specpriv"]
+            # exps = [ "Experiment-no-spec", "Experiment-cheap-spec", "Experiment-all-spec"]
+            exps = [ "Experiment-no-spec", "Experiment-no-specpriv"]
+            for exp_key in exps:
+                x_list = []
+                y_list = []
+                for bmark, status in reg_results.items():
+                    if exp_key in status and status[exp_key]:
+                        if 'speedup' in status[exp_key]:
+                            x_list.append(bmark)
+                            y_list.append(status[exp_key]['speedup'])
+                            if status[exp_key]['speedup'] < speedup_threshold:
+                                continue
+
+                speedup_bar_list.append(update_list(x_list, y_list, date, exp_key))
+
+        return speedup_bar_list
 
     def getSpeedupData(self, date_list, speedup_threshold=2.0):
         self.updateResult(date_list)
@@ -332,13 +322,11 @@ class ResultProvider:
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-r", "--results_path", type=str, required=True,
-                        help="Path to the results directory")
-    parser.add_argument("-p", "--port", type=int, default=8050, 
-                        help="Path to the results directory")
+    parser.add_argument("-p", "--root_path", type=str, required=True,
+                        help="Root path of CPF benchmark directory")
     args = parser.parse_args()
 
-    return args.results_path, args.port
+    return args.root_path
 
 
 # some setting for plot
@@ -348,26 +336,29 @@ app.config.suppress_callback_exceptions = True
 
 
 def getRealSpeedupLayout(resultProvider):
-    # bmark_list = ["correlation", "2mm", "3mm", "covariance", "gemm", "doitgen", "swaptions",
-                  # "blackscholes", "052.alvinn", "enc-md5", "dijkstra-dynsize", "179.art"]
-    # date_list = ["2019-06-27", "2019-07-01", "2019-07-06", "2019-07-08"]
-
-    #data_real_speedup = resultProvder.getRealSpeedup(bmark_list, date_list)
-
-    # Get benchmark list and data list from the results directory
-    data_real_speedup = resultProvider.getRealSpeedupAuto()
+    bmark_list = ["correlation", "2mm", "3mm", "covariance", "gemm", "doitgen", "swaptions",
+                  "blackscholes", "052.alvinn", "enc-md5", "dijkstra-dynsize", "179.art"]
+    date_list = ["2019-06-27", "2019-07-01", "2019-07-06", "2019-07-08"]
+    data_real_speedup = resultProvider.getRealSpeedup(bmark_list, date_list)
     layout = [html.Div(children='''
-            Real Speedup Comparison
+            Real Speedup on 24 cores (Average of 3 runs)
         '''),
-        dcc.Graph(
-            id='real-speed-graph',
-            figure={
-                'data': data_real_speedup,
-                'layout': {
-                    'title': 'Real Speedup'
-                    }
-                }
-            )]
+
+              # Data Layout:
+              # [
+              #     {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
+              #     {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': 'Montréal'},
+              # ]
+
+              dcc.Graph(
+        id='real-speed-graph',
+        figure={
+            'data': data_real_speedup,
+            'layout': {
+                'title': 'Real Speedup'
+            }
+        }
+    )]
 
     return layout
 
@@ -539,6 +530,61 @@ def getComparePrivateerLayout(resultProvider):
     return layout
 
 
+def getEstimatedSpeedupLayoutExp3(resultProvider):
+    # no change  '2021-06-01-16-19','2021-06-02-00-36',
+    #date_list = ['2021-05-20-18-41', '2021-05-25-00-28', '2021-05-25-20-03',  '2021-06-03-11-47', '2021-06-03-18-39', '2021-06-08-00-14', '2021-06-08-22-36', '2021-06-21-17-44', '2021-07-07-21-43', '2021-09-28-15-59']
+    #date_list = ['2021-05-20-18-41', '2021-05-25-00-28', '2021-05-25-20-03',  '2021-06-03-11-47', '2021-06-03-18-39', '2021-06-08-00-14', '2021-06-08-22-36', '2021-06-21-17-44', '2021-07-07-21-43', '2021-09-28-15-59', '2021-10-25-21-23']
+    date_list = ['2021-10-25-21-23']
+
+    data_speedup_exp3 = resultProvider.getSpeedupExp3(date_list, 1.0)
+
+    fig = go.Figure({
+        'data': data_speedup_exp3,
+        'layout': {
+            'title': 'Speedup',
+            'yaxis': {
+                'showline': True, 
+                'linewidth': 2,
+                'ticks': "inside",
+                'mirror': 'all',
+                'linecolor': 'black',
+                'gridcolor':'rgb(200,200,200)', 
+                'range': [0, 28.5],
+                'nticks': 15,
+                'title': {'text': "Whole Program Speedup over Sequential"},
+                'ticksuffix': "x",
+                },
+            'xaxis': {
+                'linecolor': 'black',
+                'showline': True, 
+                'linewidth': 2,
+                'mirror': 'all'
+                },
+            'font': {'family': 'Helvetica', 'color': "Black"},
+            'plot_bgcolor': 'white',
+            }
+        })
+
+    fig.add_hline(y=1.0)
+    
+    layout_speedup = [html.Div(children='''
+            Estimated Speedup on 22 cores
+        '''),
+
+        # Data Layout:
+        # [
+        #     {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
+        #     {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': 'Montréal'},
+        # ]
+
+        dcc.Graph(
+            id='speed-graph',
+            figure=fig
+            )]
+
+    return layout_speedup
+
+
 def getEstimatedSpeedupLayout(resultProvider):
     date_list = ['2019-04-28', '2019-05-20', '2019-05-22',
                  '2019-06-04', '2019-06-06', '2019-06-08',
@@ -547,7 +593,7 @@ def getEstimatedSpeedupLayout(resultProvider):
                  '2021-03-05-00-19', '2021-03-07-00-19',
                  '2021-03-09-00-20', '2021-03-11-00-20',
                  '2021-03-15-19-31', '2021-03-16-01-20',
-                 '2021-03-18-01-21']
+                 '2021-03-18-01-21', '2021-03-26-01-54']
 
     data_speedup, data_speedup_DOALL, data_speedup_no_DOALL = resultProvider.getSpeedupData(
         date_list, 1.0)
@@ -697,6 +743,27 @@ def getMultiCoreLayout(resultProvider):
     return layout
 
 
+def getCoverageLayout(resultProvider):
+    date = "2022-01-27-16-37"
+    directory = os.path.join(resultProvider._path, date)
+    fig = getCdfFig(directory)
+    fig.update_layout(autosize=False,
+                      width=1000, height=500,
+                      font={'family': 'Helvetica', 'color': 'Black'})
+    layout = [html.Div([
+        html.H1("Threshold-Coverage plot"),
+        html.P("Each threshold correspond to the maximum coverage of loops with the largest sequential SCC smaller than the threshold."),
+        html.P("For example, when threshold=0%, only DOALL loops are selected. When threshold=100%, all loops are selected."),
+        html.P("Loops have to be more than 10% of the program execution and on average 8 iteration/invocation."),
+        html.P("When multiple loops meet threshold requirement, a max clique algorithm is run to select the max coverage")]),
+              dcc.Graph(
+        id='threshold-coverage-graph',
+        figure=fig
+    )]
+
+    return layout
+
+
 @app.callback(dash.dependencies.Output('page-content', 'children'),
               [dash.dependencies.Input('url', 'pathname')])
 def display_page(pathname):
@@ -715,6 +782,12 @@ def display_page(pathname):
     elif pathname == '/estimatedSpeedup':
         layout = getEstimatedSpeedupLayout(app._resultProvider)
         return layout
+    elif pathname == '/estimatedSpeedup-exp3':
+        layout = getEstimatedSpeedupLayoutExp3(app._resultProvider)
+        return layout
+    elif pathname == '/coverage':
+        layout = getCoverageLayout(app._resultProvider)
+        return layout
     elif pathname == '/comparePrivateer':
         layout = getComparePrivateerLayout(app._resultProvider)
         return layout
@@ -728,19 +801,24 @@ def display_page(pathname):
 
 
 if __name__ == '__main__':
-    result_path, port = parseArgs()
+    cpf_root = parseArgs()
+    result_path = os.path.join(cpf_root, "./results/")
     app._resultProvider = ResultProvider(result_path)
 
     app.layout = html.Div([
         dcc.Location(id='url', refresh=False),
-        # dcc.Link('Different Cores', href='/multiCore'),
-        # html.Br(),
+        dcc.Link('Different Cores', href='/multiCore'),
+        html.Br(),
         # dcc.Link('Real Speedup', href='/realSpeedup'),
         # html.Br(),
-        # dcc.Link('Compare with Privateer', href='/comparePrivateer'),
-        # html.Br(),
-        # dcc.Link('Estimated Speedup', href='/estimatedSpeedup'),
+        dcc.Link('Compare with Privateer', href='/comparePrivateer'),
+        html.Br(),
+        dcc.Link('Estimated Speedup', href='/estimatedSpeedup'),
+        html.Br(),
+        dcc.Link('Estimated Speedup (new)', href='/estimatedSpeedup-exp3'),
+        html.Br(),
+        dcc.Link('Coverage (OOPSLA22)', href='/coverage'),
         html.Div(id='page-content')
     ])
 
-    app.run_server(debug=False, host='0.0.0.0', port=port)
+    app.run_server(debug=False, host='0.0.0.0')
