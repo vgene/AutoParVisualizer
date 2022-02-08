@@ -14,6 +14,7 @@ import dash
 from dash import dcc, html
 import plotly.graph_objects as go
 from VisualizeCoverage import getCdfFig
+from Status import getStatusLayout
 
 # Geometric mean helper
 def geo_mean_overflow(iterable):
@@ -773,6 +774,9 @@ def display_page(pathname):
     if pathname == '/':
         pathname = '/realSpeedup'
 
+    if pathname == '/status':
+        layout = getStatusLayout(app._resultProvider)
+        return layout
     if pathname == '/multiCore':
         layout = getMultiCoreLayout(app._resultProvider)
         return layout
@@ -807,6 +811,8 @@ if __name__ == '__main__':
 
     app.layout = html.Div([
         dcc.Location(id='url', refresh=False),
+        dcc.Link('SPEC 2017 Status', href='/status'),
+        html.Br(),
         dcc.Link('Different Cores', href='/multiCore'),
         html.Br(),
         # dcc.Link('Real Speedup', href='/realSpeedup'),
