@@ -19,21 +19,20 @@ def getStatusLayout(resultProvider):
     with open(statusJson, 'r') as fd:
         status = json.load(fd)
  
-    passes = ["Loop", "Edge", "SLAMP"] #, "SpecPriv", "HeaderPhi", "Experiment"]
+    passes = ["Loop", "Edge", "SLAMP", "Exp-slamp", "Exp-ignorefn"] #, "SpecPriv", "HeaderPhi", "Experiment"]
 
     tb = [html.Tr([html.Th(c) for c in (["bmark"] + passes)])]
     for bmark, st in status.items():
-        td = [bmark]
+        td = [html.Td(bmark)]
 
         for p in passes:
             if p not in st:
-                td.append("-")
+                td.append(html.Td("-"))
             else:
                 if st[p] == True:
-                    td.append("Y")
+                    td.append(html.Td("Y", style={'color': 'green'}))
                 else:
-                    td.append("X")
-        td = [html.Td(c) for c in td]
+                    td.append(html.Td("X", style={'color': 'red'}))
         tb.append(html.Tr(td))
 
     return [html.Div([
