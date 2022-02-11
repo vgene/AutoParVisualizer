@@ -744,23 +744,70 @@ def getMultiCoreLayout(resultProvider):
     return layout
 
 
-def getCoverageLayout(resultProvider):
-    date = "2022-01-27-16-37"
+def getCoverageDatePickerLayout():
+    dates = ["2022-01-27-16-37", "2022-02-10-16-12"]
+
+    layout = html.Div([
+        dcc.Dropdown(
+            id="coverage-date-picker",
+            options=dates,
+            value=dates[-1]
+            ),
+        html.Div(id="coverage-container")
+        ])
+
+    return layout
+
+@app.callback(
+    dash.dependencies.Output("coverage-container", "children"),
+    [dash.dependencies.Input("coverage-date-picker", "value")])
+def getCoverageLayout(date):
+    resultProvider = app._resultProvider
+
+    def setLayout(figs):
+        for fig in figs:
+            fig.update_layout(autosize=False,
+                    width=1000, height=500,
+                    font={'family': 'Helvetica', 'color': 'Black'})
     directory = os.path.join(resultProvider._path, date)
-    fig = getCdfFig(directory)
-    fig.update_layout(autosize=False,
-                      width=1000, height=500,
-                      font={'family': 'Helvetica', 'color': 'Black'})
+    fig, bar = getCdfFig(directory)
+    figOnlyIgnore, barOnlyIgnore = getCdfFig(directory, onlyIgnoreFn=True)
+    figOnlyNotIgnore, barOnlyNotIgnore = getCdfFig(directory, onlyNotIgnoreFn=True)
+
+    setLayout([fig, bar, figOnlyIgnore, barOnlyIgnore, figOnlyNotIgnore, barOnlyNotIgnore])
     layout = [html.Div([
         html.H1("Threshold-Coverage plot"),
         html.P("Each threshold correspond to the maximum coverage of loops with the largest sequential SCC smaller than the threshold."),
         html.P("For example, when threshold=0%, only DOALL loops are selected. When threshold=100%, all loops are selected."),
         html.P("Loops have to be more than 10% of the program execution and on average 8 iteration/invocation."),
         html.P("When multiple loops meet threshold requirement, a max clique algorithm is run to select the max coverage")]),
-              dcc.Graph(
-        id='threshold-coverage-graph',
-        figure=fig
-    )]
+        dcc.Graph(
+            id='threshold-coverage-graph',
+            figure=fig,
+            ),
+        dcc.Graph(
+            id='threshold-coverage-bar',
+            figure=bar,
+            ),
+        dcc.Graph(
+            id='threshold-coverage-graph-only-not-ignore',
+            figure=figOnlyNotIgnore,
+            ),
+        dcc.Graph(
+            id='threshold-coverage-bar-only-not-ignore',
+            figure=barOnlyNotIgnore,
+            ),
+        dcc.Graph(
+            id='threshold-coverage-graph-only-ignore',
+            figure=figOnlyIgnore,
+            ),
+        dcc.Graph(
+            id='threshold-coverage-bar-only-ignore',
+            figure=barOnlyIgnore,
+            ),
+        ]
+
+
 
     return layout
 
@@ -790,7 +837,7 @@ def display_page(pathname):
         layout = getEstimatedSpeedupLayoutExp3(app._resultProvider)
         return layout
     elif pathname == '/coverage':
-        layout = getCoverageLayout(app._resultProvider)
+        layout = getCoverageDatePickerLayout()
         return layout
     elif pathname == '/comparePrivateer':
         layout = getComparePrivateerLayout(app._resultProvider)

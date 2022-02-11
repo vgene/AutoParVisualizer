@@ -22,20 +22,20 @@ def getStatusLayout(resultProvider):
     passes = ["Loop", "Edge", "SLAMP", "Exp-slamp", "Exp-ignorefn"] #, "SpecPriv", "HeaderPhi", "Experiment"]
 
     tb = [html.Tr([html.Th(c) for c in (["bmark"] + passes)])]
-    for bmark, st in status.items():
+    for bmark, st in sorted(status.items()):
         td = [html.Td(bmark)]
 
         for p in passes:
             if p not in st:
                 td.append(html.Td("-"))
             else:
-                if st[p] == True:
+                if st[p]:
                     td.append(html.Td("Y", style={'color': 'green'}))
                 else:
                     td.append(html.Td("X", style={'color': 'red'}))
         tb.append(html.Tr(td))
 
     return [html.Div([
-        html.H1("Status"),
+        html.H1("Status as of " + latestDir),
         html.Table(tb)])]
 

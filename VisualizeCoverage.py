@@ -61,10 +61,10 @@ def findMaxCoverage(coverages, compatible, idxs):
 
 def getCdfs(bmark_coverage, bmark_sccs, bmark_compatible):
     bmarkCdf = {}
-    for bmark in bmark_coverage:
-        coverages = bmark_coverage[bmark]
+    for bmark in sorted(bmark_sccs):
         sccs = bmark_sccs[bmark]
         compatible = bmark_compatible[bmark.replace("-ignorefn", "")]
+        coverages = bmark_coverage[bmark.replace("-ignorefn", "")]
         
         coverageCdf = []
         for thres in range(101):
@@ -88,13 +88,24 @@ def getCdfs(bmark_coverage, bmark_sccs, bmark_compatible):
 #   
 # - When multiple loops meet threshold requirement, a max clique algorithm
 #   is run to select the max coverage.
-def getCdfFig(directory):
+def getCdfFig(directory, onlyIgnoreFn=False, onlyNotIgnoreFn=False):
 
     coverages, sccs, compatibles = openBmarkFileFiles(directory)
     bmarkCdf = getCdfs(coverages, sccs, compatibles)
 
     fig = go.Figure()
+
+    bmarks = []
     for bmark in bmarkCdf:
+        if onlyIgnoreFn:
+            if "ignorefn" not in bmark:
+                continue
+        if onlyNotIgnoreFn:
+            if "ignorefn" in bmark:
+                continue
+        bmarks.append(bmark)
+
+    for bmark in bmarks:
         fig.add_trace(go.Scatter(x=list(range(101)), y=bmarkCdf[bmark],
                                  mode='lines',
                                  name=bmark))
@@ -103,5 +114,20 @@ def getCdfFig(directory):
                       xaxis_title='Threshold of Largest Sequential SCC (%)',
                       yaxis_title='Coverage of Whole Program Execution Time(%)')
 
-    return fig
+    bar_fig= go.Figure()
+    bar_fig.add_trace(go.Bar(
+        x=bmarks,
+        y=[bmarkCdf[bmark][0] for bmark in bmarks],
+        name='Largest SCC<=0 (DOALL)',
+        marker_color='indianred'
+    ))
+    bar_fig.add_trace(go.Bar(
+        x=bmarks,
+        y=[bmarkCdf[bmark][100] for bmark in bmarks],
+        name='Largest SCC <=100 (All selected loops)',
+        marker_color='lightsalmon'
+    ))
+
+    return fig, bar_fig
+
 
