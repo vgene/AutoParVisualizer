@@ -745,7 +745,7 @@ def getMultiCoreLayout(resultProvider):
 
 
 def getCoverageDatePickerLayout():
-    dates = ["2022-01-27-16-37", "2022-02-10-16-12"]
+    dates = ["2022-01-27-16-37", "2022-02-10-16-12", "2022-02-16-20-01"]
 
     layout = html.Div([
         dcc.Dropdown(

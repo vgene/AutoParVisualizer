@@ -29,6 +29,9 @@ def filterGoodLoops(sccs, threshold):
 
 
 def isCompatible(compatible, s):
+    if len(compatible) > 1 and type(compatible[0]) == list:
+        compatible = [tuple(i) for i in compatible]
+    
     if len(s) < 2:
         return True
 
@@ -46,7 +49,7 @@ def findMaxCoverage(coverages, compatible, idxs):
     if curLen == 0:
         return 0
 
-    while maxCoverage == 0:
+    while curLen > 0:
         for s in list(itertools.combinations(idxs, curLen)):
             if (isCompatible(compatible, s)):
                 curCoverage = 0
