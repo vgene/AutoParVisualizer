@@ -14,7 +14,6 @@ import dash
 from dash import dcc, html
 import plotly.graph_objects as go
 from VisualizeCoverage import getCdfFig
-from Status import getStatusLayout
 
 # Geometric mean helper
 def geo_mean_overflow(iterable):
@@ -745,13 +744,39 @@ def getMultiCoreLayout(resultProvider):
 
 
 def getCoverageDatePickerLayout():
-    dates = ["2022-01-27-16-37", "2022-02-10-16-12", "2022-02-16-20-01"]
+    dates = ["2022-01-27-16-37", "2022-02-10-16-12", "2022-02-17-20-36", "2022-03-01-17-27"]
+
+    def getLatestDir(path):
+        dates = []
+        dirs = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
+        if len(dirs) == 0:
+            return None
+        for date in sorted(dirs):
+            if os.path.isfile(os.path.join(path, date, "status.json")):
+                if date > "2022-03-01-17-27":
+                    dates.append(date)
+        return dates
+
+    dates.extend(getLatestDir(app._resultProvider._path))
+
+    def getMemo(date):
+        path = app._resultProvider._path
+        with open(path + date + '.log') as fd:
+            obj = json.load(fd)
+            if 'memo' in obj:
+                return obj['memo']
+            else:
+                return "No Memo"
+
+    options = []
+    for date in dates:
+        options.append({"label": date + ":" + getMemo(date), "value": date})
 
     layout = html.Div([
         dcc.Dropdown(
             id="coverage-date-picker",
-            options=dates,
-            value=dates[-1]
+            options=options,
+            value=options[-1]['value']
             ),
         html.Div(id="coverage-container")
         ])
@@ -810,6 +835,77 @@ def getCoverageLayout(date):
 
 
     return layout
+
+def getStatusLayout(resultProvider):
+    path = os.path.join(resultProvider._path)
+
+    def getLatestDir(path):
+        dates = []
+        dirs = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
+        if len(dirs) == 0:
+            return None
+        for date in sorted(dirs):
+            if os.path.isfile(os.path.join(path, date, "status.json")):
+                if date >= "2022-01-27-16-37":
+                    dates.append(date)
+        return dates
+
+    dates = getLatestDir(path) 
+    if not dates:
+        return [html.Div([html.H1("No valid status files")])]
+
+    def getMemo(date):
+        path = app._resultProvider._path
+        with open(path + date + '.log') as fd:
+            obj = json.load(fd)
+            if 'memo' in obj:
+                return obj['memo']
+            else:
+                return "No Memo"
+
+    options = []
+    for date in dates:
+        options.append({"label": date + ":" + getMemo(date), "value": date})
+
+    layout = html.Div([
+        dcc.Dropdown(
+            id="status-date-picker",
+            options=options,
+            value=options[-1]['value']
+            ),
+        html.Div(id="status-container")
+        ])
+
+    return layout
+
+@app.callback(
+    dash.dependencies.Output("status-container", "children"),
+    [dash.dependencies.Input("status-date-picker", "value")])
+def getStatusTable(date):
+    path = app._resultProvider._path
+    statusJson = os.path.join(path, date, "status.json")
+    with open(statusJson, 'r') as fd:
+        status = json.load(fd)
+
+    passes = ["Loop", "Edge", "SLAMP", "Exp-slamp", "Exp-ignorefn"] #, "SpecPriv", "HeaderPhi", "Experiment"]
+
+    tb = [html.Tr([html.Th(c) for c in (["bmark"] + passes)])]
+    for bmark, st in sorted(status.items()):
+        td = [html.Td(bmark)]
+
+        for p in passes:
+            if p not in st:
+                td.append(html.Td("-"))
+            else:
+                if st[p]:
+                    td.append(html.Td("Y", style={'color': 'green'}))
+                else:
+                    td.append(html.Td("X", style={'color': 'red'}))
+        tb.append(html.Tr(td))
+
+    return [html.Div([
+        html.H1("Status as of " + date),
+        html.Table(tb)])]
 
 
 @app.callback(dash.dependencies.Output('page-content', 'children'),
