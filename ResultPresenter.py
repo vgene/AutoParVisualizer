@@ -215,6 +215,13 @@ class ResultProvider:
         speedup_bar_list = []
 
         def getMemo(date):
+            # if exist .log file
+            log_path = self._path + date + '.log'
+            if not os.path.exists(log_path):
+                log_path = self._path + date + "/config.json"
+            if not os.path.exists(log_path):
+                return "No Log File"
+
             with open(self._path + date + '.log') as fd:
                 obj = json.load(fd)
                 if 'memo' in obj:
@@ -908,8 +915,8 @@ def getStatusTable(date):
         html.Table(tb)])]
 
 
-@app.callback(dash.dependencies.Output('page-content', 'children'),
-              [dash.dependencies.Input('url', 'pathname')])
+@app.callback(dash.Output('page-content', 'children'),
+              [dash.Input('url', 'pathname')])
 def display_page(pathname):
     if not pathname:
         return 404
