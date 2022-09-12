@@ -862,8 +862,15 @@ def getStatusLayout(resultProvider):
         return [html.Div([html.H1("No valid status files")])]
 
     def getMemo(date):
+        # if exist .log file
         path = app._resultProvider._path
-        with open(path + date + '.log') as fd:
+        log_path = path + date + '.log'
+        if not os.path.exists(log_path):
+            log_path = path + date + "/config.json"
+        if not os.path.exists(log_path):
+            return "No Log File"
+
+        with open(log_path) as fd:
             obj = json.load(fd)
             if 'memo' in obj:
                 return obj['memo']
