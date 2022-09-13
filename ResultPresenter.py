@@ -222,7 +222,7 @@ class ResultProvider:
             if not os.path.exists(log_path):
                 return "No Log File"
 
-            with open(self._path + date + '.log') as fd:
+            with open(log_path) as fd:
                 obj = json.load(fd)
                 if 'memo' in obj:
                     return obj['memo']
@@ -256,8 +256,8 @@ class ResultProvider:
                             y_list.append(status[exp_key]['speedup'])
                             if status[exp_key]['speedup'] < speedup_threshold:
                                 continue
-
-                speedup_bar_list.append(update_list(x_list, y_list, date, exp_key))
+                if len(x_list) > 0:
+                    speedup_bar_list.append(update_list(x_list, y_list, date, exp_key))
 
         return speedup_bar_list
 
@@ -768,13 +768,13 @@ def getCoverageDatePickerLayout():
 
     def getMemo(date):
         # if exist .log file
-        log_path = self._path + date + '.log'
+        log_path = app._resultProvider._path + date + '.log'
         if not os.path.exists(log_path):
-            log_path = self._path + date + "/config.json"
+            log_path = app._resultProvider._path + date + "/config.json"
         if not os.path.exists(log_path):
             return "No Log File"
 
-        with open(self._path + date + '.log') as fd:
+        with open(log_path) as fd:
             obj = json.load(fd)
             if 'memo' in obj:
                 return obj['memo']
