@@ -245,7 +245,7 @@ class ResultProvider:
             reg_results = self._all_reg_results[date]
             #exps = [ "Experiment-no-spec", "Experiment-cheap-spec", "Experiment-all-spec", "Experiment-no-specpriv"]
             # exps = [ "Experiment-no-spec", "Experiment-cheap-spec", "Experiment-all-spec"]
-            exps = [ "Experiment-no-spec", "Experiment-no-specpriv"]
+            exps = [ "Experiment-no-spec", "Experiment-no-specpriv", "Exp-slamp"]
             for exp_key in exps:
                 x_list = []
                 y_list = []
@@ -541,7 +541,7 @@ def getEstimatedSpeedupLayoutExp3(resultProvider):
     # no change  '2021-06-01-16-19','2021-06-02-00-36',
     #date_list = ['2021-05-20-18-41', '2021-05-25-00-28', '2021-05-25-20-03',  '2021-06-03-11-47', '2021-06-03-18-39', '2021-06-08-00-14', '2021-06-08-22-36', '2021-06-21-17-44', '2021-07-07-21-43', '2021-09-28-15-59']
     #date_list = ['2021-05-20-18-41', '2021-05-25-00-28', '2021-05-25-20-03',  '2021-06-03-11-47', '2021-06-03-18-39', '2021-06-08-00-14', '2021-06-08-22-36', '2021-06-21-17-44', '2021-07-07-21-43', '2021-09-28-15-59', '2021-10-25-21-23']
-    date_list = ['2021-10-25-21-23']
+    date_list = ['2021-10-25-21-23', '2022-09-12-18-02']
 
     data_speedup_exp3 = resultProvider.getSpeedupExp3(date_list, 1.0)
 
@@ -767,8 +767,14 @@ def getCoverageDatePickerLayout():
     dates.extend(getLatestDir(app._resultProvider._path))
 
     def getMemo(date):
-        path = app._resultProvider._path
-        with open(path + date + '.log') as fd:
+        # if exist .log file
+        log_path = self._path + date + '.log'
+        if not os.path.exists(log_path):
+            log_path = self._path + date + "/config.json"
+        if not os.path.exists(log_path):
+            return "No Log File"
+
+        with open(self._path + date + '.log') as fd:
             obj = json.load(fd)
             if 'memo' in obj:
                 return obj['memo']
