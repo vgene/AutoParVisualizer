@@ -259,6 +259,7 @@ class ResultProvider:
                 if len(x_list) > 0:
                     speedup_bar_list.append(update_list(x_list, y_list, date, exp_key))
 
+
         return speedup_bar_list
 
     def getSpeedupData(self, date_list, speedup_threshold=2.0):
@@ -923,9 +924,20 @@ def getStatusTable(date):
                     td.append(html.Td("X", style={'color': 'red'}))
         tb.append(html.Tr(td))
 
+    # for each benchmark, get "Exp-slamp", if not None, get "loops", render the json
+    loops_tb = [html.Tr([html.Th(c) for c in (["bmark", "loops"])])]
+    for bmark, st in sorted(status.items()):
+        if "Exp-slamp" in st and st["Exp-slamp"]:
+            loops = st["Exp-slamp"]["loops"]
+            if loops:
+                loops_tb.append(html.Tr([html.Td(bmark), html.Td(json.dumps(loops))]))
+
     return [html.Div([
         html.H1("Status as of " + date),
-        html.Table(tb)])]
+        html.Table(tb),
+        html.H1("SLAMP Exps"),
+        html.Table(loops_tb)
+        ])]
 
 
 @app.callback(dash.Output('page-content', 'children'),
