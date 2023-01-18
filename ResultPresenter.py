@@ -933,7 +933,7 @@ def getStatusTable(date):
         if "Exp-slamp" in st and st["Exp-slamp"]:
             loops = st["Exp-slamp"]["loops"]
             if loops:
-                for loop, values in loops:
+                for loop, values in loops.items():
                     # get all values of the dict, and render it as a table
                     values = [values[k] for k in keys]
                     loops_tb.append(html.Tr([html.Td(bmark), html.Td(loop), html.Td(values)]))
