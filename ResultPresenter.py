@@ -935,8 +935,13 @@ def getStatusTable(date):
             if loops:
                 for loop, values in loops.items():
                     # get all values of the dict, and render it as a table
-                    values = [values[k] for k in keys]
-                    loops_tb.append(html.Tr([html.Td(bmark), html.Td(loop), html.Td(values)]))
+                    rendered_values = []
+                    for key in keys:
+                        if key in values:
+                            rendered_values.append(values[key])
+                        else:
+                            rendered_values.append("-")
+                    loops_tb.append(html.Tr([html.Td(bmark), html.Td(loop), html.Td(rendered_values)]))
 
     return [html.Div([
         html.H1("Status as of " + date),
