@@ -924,13 +924,19 @@ def getStatusTable(date):
                     td.append(html.Td("X", style={'color': 'red'}))
         tb.append(html.Tr(td))
 
+    keys = ["debug_info", "exec_coverage", "loop_stage", "loop_speedup", "slamp", "covered_lcDeps", "total_lcDeps", "lcDeps_coverage"]
     # for each benchmark, get "Exp-slamp", if not None, get "loops", render the json
-    loops_tb = [html.Tr([html.Th(c) for c in (["bmark", "loops"])])]
+    names = ["Benchmark", "Loop", "Debug Info", "Exec Coverage (%)", "Loop Stage", "Loop Speedup (x)", "SLAMP", "Covered LC Deps", "Total LC Deps", "LC Deps Coverage (%)"]
+    loops_tb = [html.Tr([html.Th(c) for c in names])]
+
     for bmark, st in sorted(status.items()):
         if "Exp-slamp" in st and st["Exp-slamp"]:
             loops = st["Exp-slamp"]["loops"]
             if loops:
-                loops_tb.append(html.Tr([html.Td(bmark), html.Td(json.dumps(loops))]))
+                for loop, values in loops:
+                    # get all values of the dict, and render it as a table
+                    values = [values[k] for k in keys]
+                    loops_tb.append(html.Tr([html.Td(bmark), html.Td(loop), html.Td(values)]))
 
     return [html.Div([
         html.H1("Status as of " + date),
