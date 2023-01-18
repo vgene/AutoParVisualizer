@@ -941,7 +941,7 @@ def getStatusTable(date):
                             rendered_values.append(values[key])
                         else:
                             rendered_values.append("-")
-                    loops_tb.append(html.Tr([html.Td(bmark), html.Td(loop), html.Td(rendered_values)]))
+                    loops_tb.append(html.Tr([html.Td(bmark), html.Td(loop)] + [html.Td(str(v)) for v in rendered_values]))
 
     return [html.Div([
         html.H1("Status as of " + date),
