@@ -879,6 +879,8 @@ def update_loop_dropdown(date, bmark):
             # get the loops that are sorted by Exec Coverage (exec_coverage)
             loops = list(sorted(st, key=lambda x: st[x]['exec_coverage'], reverse=True))
 
+    loops.insert(0, "ALL")
+
     return loops
 
 def getStatusLayout(resultProvider):
@@ -951,6 +953,8 @@ def getStatusTable(date, picked_bmark, picked_loop):
     statusJson = os.path.join(path, date, "status.json")
     with open(statusJson, 'r') as fd:
         status = json.load(fd)
+    if picked_loop == "ALL":
+        picked_loop = None
 
     passes = ["Loop", "Edge", "SLAMP", "Exp-slamp", "Exp-ignorefn"] #, "SpecPriv", "HeaderPhi", "Experiment"]
 
@@ -979,6 +983,8 @@ def getStatusTable(date, picked_bmark, picked_loop):
         if "Exp-slamp" in st and st["Exp-slamp"]:
             loops = st["Exp-slamp"]["loops"]
             if loops:
+                if picked_loop != None and picked_loop not in loops:
+                    picked_loop = None
                 for loop, values in loops.items():
                     if picked_loop != None and picked_loop != loop:
                         continue
