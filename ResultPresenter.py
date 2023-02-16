@@ -1013,6 +1013,7 @@ def getStatusTable(date, picked_bmark, picked_loop):
 
         except Exception as e:
             print("Not found")
+            print(picked_bmark, picked_loop)
             print(e)
 
     return blocks
