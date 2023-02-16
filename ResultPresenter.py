@@ -850,6 +850,8 @@ def getCoverageLayout(date):
 
     return layout
 
+bmark_options = []
+loop_options = []
 def getStatusLayout(resultProvider):
     path = os.path.join(resultProvider._path)
 
@@ -864,7 +866,7 @@ def getStatusLayout(resultProvider):
                     dates.append(date)
         return dates
 
-    dates = getLatestDir(path) 
+    dates = getLatestDir(path)
     if not dates:
         return [html.Div([html.H1("No valid status files")])]
 
@@ -894,6 +896,17 @@ def getStatusLayout(resultProvider):
             options=options,
             value=options[-1]['value']
             ),
+        # create another dropdown, the options depends on the first dropdown
+        dcc.Dropdown(
+            id="status-bmark-picker",
+            options=bmark_options,
+            value=None
+            ),
+        dcc.Dropdown(
+            id="status-loop-picker",
+            options=loop_options,
+            value=None
+            ),
         html.Div(id="status-container")
         ])
 
@@ -901,14 +914,25 @@ def getStatusLayout(resultProvider):
 
 @app.callback(
     dash.dependencies.Output("status-container", "children"),
-    [dash.dependencies.Input("status-date-picker", "value")])
-def getStatusTable(date):
+    [dash.dependencies.Input("status-date-picker", "value"),
+        dash.dependencies.Input("status-bmark-picker", "value"),
+        dash.dependencies.Input("status-loop-picker", "value")])
+def getStatusTable(date, picked_bmark, picked_loop):
     path = app._resultProvider._path
     statusJson = os.path.join(path, date, "status.json")
     with open(statusJson, 'r') as fd:
         status = json.load(fd)
 
     passes = ["Loop", "Edge", "SLAMP", "Exp-slamp", "Exp-ignorefn"] #, "SpecPriv", "HeaderPhi", "Experiment"]
+
+    if len(bmark_options) == 0:
+        for bmark, st in sorted(status.items()):
+            bmark_options.append(bmark)
+
+    if picked_bmark != None:
+        st = status[picked_bmark]
+        for loop in st["Exp-slamp"]["loops"]:
+            loop_options.append(loop)
 
     tb = [html.Tr([html.Th(c) for c in (["bmark"] + passes)])]
     for bmark, st in sorted(status.items()):
@@ -930,10 +954,14 @@ def getStatusTable(date):
     loops_tb = [html.Tr([html.Th(c) for c in names])]
 
     for bmark, st in sorted(status.items()):
+        if picked_bmark != None and bmark != picked_bmark:
+            continue
         if "Exp-slamp" in st and st["Exp-slamp"]:
             loops = st["Exp-slamp"]["loops"]
             if loops:
                 for loop, values in loops.items():
+                    if picked_loop != None and picked_loop != loop:
+                        continue
                     # get all values of the dict, and render it as a table
                     rendered_values = []
                     for key in keys:
