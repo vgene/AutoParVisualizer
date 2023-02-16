@@ -492,7 +492,7 @@ def getComparePrivateerLayout(resultProvider):
     # bar_perspective_SAMA = getOneBar(perspective_SAMA_time_list, "Per<i>spec</i>tive Speculative-Aware-Memory-Analysis", '#92c5de')
     bar_perspective = getOneBar(perspective_time_list, "Per<i>spec</i>tive (Planner + Efficient SpecPriv +SAMA)", '#0571b0')
     #bar_perspective = getOneBar(perspective_time_list, "Per<i>spec</i>tive", '#0571b0')
-    
+
     bar_list = [bar_gcc, bar_icc, bar_privateer_peep, bar_privateer_both, bar_perspective_cheap_priv,  bar_perspective]
 
     fig = go.Figure({
@@ -574,7 +574,7 @@ def getEstimatedSpeedupLayoutExp3(resultProvider):
         })
 
     fig.add_hline(y=1.0)
-    
+
     layout_speedup = [html.Div(children='''
             Estimated Speedup on 22 cores
         '''),
@@ -1000,7 +1000,16 @@ def getStatusTable(date, picked_bmark, picked_loop):
         # dump the json
         try:
             data = status[picked_bmark]["Exp-slamp"]["loops"][picked_loop]
-            blocks.append(html.Code(json.dumps(data, indent=2)))
+            # visualize the blocking_deps
+            blocking_deps = data["blocking_deps"]
+            # for each dep, get dst, src, and type, sort by the type
+            # then render it as a table
+            sorted_deps = sorted(blocking_deps, key=lambda x: x["type"])
+            tb_deps = [html.Tr([html.Th("Type"), html.Th("Dst"), html.Th("Src")] )]
+            for dep in sorted_deps:
+                tb_deps.append(html.Tr([html.Td(dep["type"]), html.Td(dep["dst"]), html.Td(dep["src"])]))
+            blocks.append(html.Div(html.Table(tb_deps)))
+
         except Exception as e:
             print("Not found")
             print(e)
