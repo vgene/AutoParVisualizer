@@ -209,7 +209,7 @@ class ResultProvider:
         ))
 
         return data
- 
+
     def getSpeedupExp3(self, date_list, speedup_threshold=2.0):
         self.updateResult(date_list)
         speedup_bar_list = []
@@ -860,7 +860,7 @@ def update_bmark_dropdown(date):
     with open(statusJson, 'r') as fd:
         status = json.load(fd)
     bmarks = list(sorted(status.keys()))
-    return bmarks 
+    return bmarks
 
 @app.callback(
         dash.dependencies.Output('status-loop-picker', 'options'),
@@ -876,9 +876,10 @@ def update_loop_dropdown(date, bmark):
     if bmark != None and bmark in status:
         if 'Exp-slamp' in status[bmark]:
             st = status[bmark]['Exp-slamp']['loops']
-            loops = list(sorted(st.keys()))
+            # get the loops that are sorted by Exec Coverage (exec_coverage)
+            loops = list(sorted(st, key=lambda x: st[x]['exec_coverage'], reverse=True))
 
-    return loops 
+    return loops
 
 def getStatusLayout(resultProvider):
     path = os.path.join(resultProvider._path)
