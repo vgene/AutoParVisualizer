@@ -850,8 +850,36 @@ def getCoverageLayout(date):
 
     return layout
 
-bmark_options = []
-loop_options = []
+@app.callback(
+        dash.dependencies.Output('status-bmark-picker', 'options'),
+        [dash.dependencies.Input('status-date-picker', 'value')]
+        )
+def update_bmark_dropdown(date):
+    path = app._resultProvider._path
+    statusJson = os.path.join(path, date, "status.json")
+    with open(statusJson, 'r') as fd:
+        status = json.load(fd)
+    bmarks = list(sorted(status.keys()))
+    return bmarks 
+
+@app.callback(
+        dash.dependencies.Output('status-loop-picker', 'options'),
+        [dash.dependencies.Input('status-date-picker', 'value'), dash.dependencies.Input('status-bmark-picker', 'value')]
+        )
+def update_loop_dropdown(date, bmark):
+    loops = []
+    path = app._resultProvider._path
+    statusJson = os.path.join(path, date, "status.json")
+    with open(statusJson, 'r') as fd:
+        status = json.load(fd)
+
+    if bmark != None and bmark in status:
+        if 'Exp-slamp' in status[bmark]:
+            st = status[bmark]['Exp-slamp']['loops']
+            loops = list(sorted(st.keys()))
+
+    return loops 
+
 def getStatusLayout(resultProvider):
     path = os.path.join(resultProvider._path)
 
@@ -899,12 +927,12 @@ def getStatusLayout(resultProvider):
         # create another dropdown, the options depends on the first dropdown
         dcc.Dropdown(
             id="status-bmark-picker",
-            options=bmark_options,
+            options=[],
             value=None
             ),
         dcc.Dropdown(
             id="status-loop-picker",
-            options=loop_options,
+            options=[],
             value=None
             ),
         html.Div(id="status-container")
@@ -924,15 +952,6 @@ def getStatusTable(date, picked_bmark, picked_loop):
         status = json.load(fd)
 
     passes = ["Loop", "Edge", "SLAMP", "Exp-slamp", "Exp-ignorefn"] #, "SpecPriv", "HeaderPhi", "Experiment"]
-
-    if len(bmark_options) == 0:
-        for bmark, st in sorted(status.items()):
-            bmark_options.append(bmark)
-
-    if picked_bmark != None:
-        st = status[picked_bmark]
-        for loop in st["Exp-slamp"]["loops"]:
-            loop_options.append(loop)
 
     tb = [html.Tr([html.Th(c) for c in (["bmark"] + passes)])]
     for bmark, st in sorted(status.items()):
@@ -971,12 +990,22 @@ def getStatusTable(date, picked_bmark, picked_loop):
                             rendered_values.append("-")
                     loops_tb.append(html.Tr([html.Td(bmark), html.Td(loop)] + [html.Td(str(v)) for v in rendered_values]))
 
-    return [html.Div([
+    blocks = [html.Div([
         html.H1("Status as of " + date),
         html.Table(tb),
         html.H1("SLAMP Exps"),
         html.Table(loops_tb)
         ])]
+    if picked_bmark != None and picked_loop != None:
+        # dump the json
+        try:
+            data = status[picked_bmark]["Exp-slamp"]["loops"][picked_loop]
+            blocks.append(html.Code(json.dumps(data, indent=2)))
+        except Exception as e:
+            print("Not found")
+            print(e)
+
+    return blocks
 
 
 @app.callback(dash.Output('page-content', 'children'),
