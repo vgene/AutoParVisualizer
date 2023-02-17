@@ -15,6 +15,9 @@ from dash import dcc, html
 import plotly.graph_objects as go
 from VisualizeCoverage import getCdfFig
 import dash_mantine_components as dmc
+from pygments import highlight
+from pygments.lexers.asm import LlvmLexer
+from pygments.formatters import HtmlFormatter
 
 # Geometric mean helper
 def geo_mean_overflow(iterable):
