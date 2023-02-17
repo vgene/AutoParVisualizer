@@ -14,6 +14,7 @@ import dash
 from dash import dcc, html
 import plotly.graph_objects as go
 from VisualizeCoverage import getCdfFig
+import dash_mantine_components as dmc
 
 # Geometric mean helper
 def geo_mean_overflow(iterable):
@@ -341,7 +342,6 @@ def parseArgs():
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.config.suppress_callback_exceptions = True
-
 
 def getRealSpeedupLayout(resultProvider):
     bmark_list = ["correlation", "2mm", "3mm", "covariance", "gemm", "doitgen", "swaptions",
@@ -1014,7 +1014,9 @@ def getStatusTable(date, picked_bmark, picked_loop):
             sorted_deps = sorted(blocking_deps, key=lambda x: x["type"])
             tb_deps = [html.Tr([html.Th("Type"), html.Th("Dst"), html.Th("Src")] )]
             for dep in sorted_deps:
-                tb_deps.append(html.Tr([html.Td(dep["type"]), html.Td(dep["dst"]), html.Td(dep["src"])]))
+                src = dmc.Prism(language="llvm", children=dep["src"])
+                dst = dmc.Prism(language="llvm", children=dep["dst"])
+                tb_deps.append(html.Tr([html.Td(dep["type"]), html.Td(src), html.Td(dst)]))
             blocks.append(html.Div(html.Table(tb_deps)))
 
         except Exception as e:
