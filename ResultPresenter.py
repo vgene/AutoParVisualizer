@@ -1015,11 +1015,17 @@ def getStatusTable(date, picked_bmark, picked_loop):
             # for each dep, get dst, src, and type, sort by the type
             # then render it as a table
             sorted_deps = sorted(blocking_deps, key=lambda x: x["type"])
-            tb_deps = [html.Tr([html.Th("Type"), html.Th("Dst"), html.Th("Src")] )]
+            tb_deps = [html.Tr([html.Th("Type"), html.Th("Src/Dst")] )]
             for dep in sorted_deps:
-                src = dmc.Prism(language="c", children=dep["src"], noCopy=True)
-                dst = dmc.Prism(language="c", children=dep["dst"], noCopy=True)
-                tb_deps.append(html.Tr([html.Td(dep["type"]), html.Td(src), html.Td(dst)]))
+                src = dep["src"]
+                src = highlight(src, LlvmLexer(), HtmlFormatter())
+                dst = dep["dst"]
+                dst = highlight(dst, LlvmLexer(), HtmlFormatter())
+                src = html.Iframe(srcDoc=src, style={"border": "none", "width": "100%", "height": "100%"})
+                dst = html.Iframe(srcDoc=dst, style={"border": "none", "width": "100%", "height": "100%"})
+                # put src and dst in one column
+                src_and_dst = html.Td(html.Table([html.Tr(html.Td(src)), html.Tr(html.Td(dst))]))
+                tb_deps.append(html.Tr([html.Td(dep["type"]), src_and_dst]))
             blocks.append(html.Div(html.Table(tb_deps)))
 
         except Exception as e:
