@@ -14,10 +14,10 @@ import dash
 from dash import dcc, html
 import plotly.graph_objects as go
 from VisualizeCoverage import getCdfFig
-import dash_mantine_components as dmc
 from pygments import highlight
 from pygments.lexers.asm import LlvmLexer
 from pygments.formatters import HtmlFormatter
+import dash_dangerously_set_inner_html
 
 # Geometric mean helper
 def geo_mean_overflow(iterable):
@@ -1002,10 +1002,19 @@ def getStatusTable(date, picked_bmark, picked_loop):
 
     blocks = [html.Div([
         html.H1("Status as of " + date),
-        html.Table(tb),
-        html.H1("SLAMP Exps"),
-        html.Table(loops_tb)
-        ])]
+        html.Table(tb)])]
+    if picked_bmark == None and picked_loop == None:
+        blocks = [html.Div([
+            html.H1("Status as of " + date),
+            html.Table(tb),
+            html.H1("SLAMP Exps"),
+            html.Table(loops_tb)
+            ])]
+    if picked_bmark != None and picked_loop == None:
+        blocks = [html.Div([
+            html.H1("SLAMP Exps"),
+            html.Table(loops_tb)
+            ])]
     if picked_bmark != None and picked_loop != None:
         # dump the json
         try:
@@ -1021,12 +1030,13 @@ def getStatusTable(date, picked_bmark, picked_loop):
                 src = highlight(src, LlvmLexer(), HtmlFormatter())
                 dst = dep["dst"]
                 dst = highlight(dst, LlvmLexer(), HtmlFormatter())
-                src = html.Iframe(srcDoc=src, style={"border": "none", "width": "100%", "height": "100%"})
-                dst = html.Iframe(srcDoc=dst, style={"border": "none", "width": "100%", "height": "100%"})
+                src = dash_dangerously_set_inner_html.DangerouslySetInnerHTML(src)
+                dst = dash_dangerously_set_inner_html.DangerouslySetInnerHTML(dst)
                 # put src and dst in one column
                 src_and_dst = html.Td(html.Table([html.Tr(html.Td(src)), html.Tr(html.Td(dst))]))
                 tb_deps.append(html.Tr([html.Td(dep["type"]), src_and_dst]))
-            blocks.append(html.Div(html.Table(tb_deps)))
+
+            blocks = [html.Div([html.Table(loops_tb), html.Div(html.Table(tb_deps))])]
 
         except Exception as e:
             print("Not found")
