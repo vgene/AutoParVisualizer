@@ -1014,8 +1014,8 @@ def getStatusTable(date, picked_bmark, picked_loop):
             sorted_deps = sorted(blocking_deps, key=lambda x: x["type"])
             tb_deps = [html.Tr([html.Th("Type"), html.Th("Dst"), html.Th("Src")] )]
             for dep in sorted_deps:
-                src = dmc.Prism(language="llvm", children=dep["src"])
-                dst = dmc.Prism(language="llvm", children=dep["dst"])
+                src = dmc.Prism(language="c", children=dep["src"], noCopy=True)
+                dst = dmc.Prism(language="c", children=dep["dst"], noCopy=True)
                 tb_deps.append(html.Tr([html.Td(dep["type"]), html.Td(src), html.Td(dst)]))
             blocks.append(html.Div(html.Table(tb_deps)))
 
