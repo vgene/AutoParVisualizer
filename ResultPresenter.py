@@ -1032,8 +1032,18 @@ def getStatusTable(date, picked_bmark, picked_loop):
                 dst = highlight(dst, LlvmLexer(), HtmlFormatter())
                 src = dash_dangerously_set_inner_html.DangerouslySetInnerHTML(src)
                 dst = dash_dangerously_set_inner_html.DangerouslySetInnerHTML(dst)
+
+                if "srcId" in dep:
+                    src_block = html.Tr([html.Td(dep["srcId"]), html.Td(src)])
+                else:
+                    src_block = html.Tr(html.Td(src))
+
+                if "dstId" in dep:
+                    dst_block = html.Tr([html.Td(dep["dstId"]), html.Td(dst)])
+                else:
+                    dst_block = html.Tr(html.Td(dst))
                 # put src and dst in one column
-                src_and_dst = html.Td(html.Table([html.Tr(html.Td(src)), html.Tr(html.Td(dst))]))
+                src_and_dst = html.Td(html.Table([src_block, dst_block]))
                 tb_deps.append(html.Tr([html.Td(dep["type"]), src_and_dst]))
 
             blocks = [html.Div([html.Table(loops_tb), html.Div(html.Table(tb_deps))])]
